@@ -2,7 +2,7 @@ import Foundation
 import FoundationModels
 
 @available(iOS 26.0, *)
-final class FoundationModelsBackend: AIBackend {
+final class FoundationModelsBackend: AIBackend, @unchecked Sendable {
     private var session = LanguageModelSession()
 
     func streamResponse(prompt: String, history: [Message]) -> AsyncThrowingStream<String, Error> {
