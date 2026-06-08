@@ -1,6 +1,13 @@
 import SwiftUI
 import iUXiOS
 
+#Preview("Chat") {
+    let model = AppModel()
+    return RootView()
+        .environment(model)
+        .environment(model.settings)
+}
+
 struct RootView: View {
     @Environment(AppModel.self) private var model
 

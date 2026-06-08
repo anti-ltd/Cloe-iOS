@@ -1,5 +1,13 @@
 import SwiftUI
 
+#Preview("Empty") {
+    InputBar(input: .constant(""), onSend: {})
+}
+
+#Preview("With text") {
+    InputBar(input: .constant("What's the weather like today?"), onSend: {})
+}
+
 struct InputBar: View {
     @Binding var input: String
     let onSend: () -> Void

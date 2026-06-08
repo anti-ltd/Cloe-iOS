@@ -1,10 +1,44 @@
 import SwiftUI
 import iUXiOS
 
+#Preview("Empty") {
+    let model = AppModel()
+    return ChatView()
+        .environment(model)
+        .environment(model.settings)
+}
+
+#Preview("Conversation") {
+    let model = AppModel()
+    model.messages = [
+        Message(role: .user, content: "Hey, what's the capital of France?"),
+        Message(role: .assistant, content: "The capital of France is Paris."),
+        Message(role: .user, content: "What about Germany?"),
+        Message(role: .assistant, content: "The capital of Germany is Berlin."),
+    ]
+    return ChatView()
+        .environment(model)
+        .environment(model.settings)
+}
+
+#Preview("Generating") {
+    let model = AppModel()
+    model.messages = [
+        Message(role: .user, content: "Tell me something interesting about space."),
+        Message(role: .assistant, content: "Did you know that a day on Venus is longer than a year on Venus?"),
+    ]
+    model.isGenerating = true
+    return ChatView()
+        .environment(model)
+        .environment(model.settings)
+}
+
 struct ChatView: View {
     @Environment(AppModel.self) private var model
+    @Environment(AppSettings.self) private var settings
     @State private var input = ""
     @State private var scrollProxy: ScrollViewProxy? = nil
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -44,12 +78,24 @@ struct ChatView: View {
             .navigationTitle("Sage")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if settings.canChooseMLX {
+                        Button { showSettings = true } label: {
+                            Image(systemName: "gear")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if !model.messages.isEmpty {
                         Button("Clear") { model.clearConversation() }
                             .disabled(model.isGenerating)
                     }
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+                    .environment(settings)
+                    .environment(model)
             }
         }
     }

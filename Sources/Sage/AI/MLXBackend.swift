@@ -1,4 +1,5 @@
 import Foundation
+import Hub
 import MLXLLM
 import MLXLMCommon
 
@@ -14,11 +15,17 @@ final class MLXBackend: AIBackend, @unchecked Sendable {
     // Llama 3.2 1B 4-bit: ~700 MB download, runs on A14+
     private let config = LLMRegistry.llama3_2_1B_4bit
 
+    // Application Support persists across reinstalls; Caches (the default) does not.
+    private static let hubApi = HubApi(
+        downloadBase: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+    )
+
     func prepare() async {
         guard modelContainer == nil else { return }
         loadState = .downloading(0)
         do {
             let container = try await LLMModelFactory.shared.loadContainer(
+                hub: Self.hubApi,
                 configuration: config
             ) { [weak self] progress in
                 Task { @MainActor in

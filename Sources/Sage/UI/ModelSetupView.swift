@@ -1,5 +1,28 @@
 import SwiftUI
 
+#Preview("Idle") {
+    let mlx = MLXBackend()
+    ModelSetupView(mlx: mlx)
+}
+
+#Preview("Downloading") {
+    let mlx = MLXBackend()
+    mlx.loadState = .downloading(0.42)
+    return ModelSetupView(mlx: mlx)
+}
+
+#Preview("Loading") {
+    let mlx = MLXBackend()
+    mlx.loadState = .loading
+    return ModelSetupView(mlx: mlx)
+}
+
+#Preview("Failed") {
+    let mlx = MLXBackend()
+    mlx.loadState = .failed("Network connection lost. Please check your internet connection and try again.")
+    return ModelSetupView(mlx: mlx)
+}
+
 struct ModelSetupView: View {
     let mlx: MLXBackend
 

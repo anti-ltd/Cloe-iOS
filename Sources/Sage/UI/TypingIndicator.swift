@@ -1,5 +1,10 @@
 import SwiftUI
 
+#Preview {
+    TypingIndicator()
+        .padding()
+}
+
 struct TypingIndicator: View {
     @State private var phase = 0
 

@@ -9,6 +9,7 @@ struct SageApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
+                .environment(model.settings)
         }
     }
 }

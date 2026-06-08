@@ -1,5 +1,20 @@
 import SwiftUI
 
+#Preview("User") {
+    MessageBubble(message: Message(role: .user, content: "Hey, what's the capital of France?"))
+        .padding()
+}
+
+#Preview("Assistant") {
+    MessageBubble(message: Message(role: .assistant, content: "The capital of France is Paris."))
+        .padding()
+}
+
+#Preview("Long") {
+    MessageBubble(message: Message(role: .assistant, content: "Sure! Here's a brief overview: Paris is one of the world's great cities, renowned for the Eiffel Tower, the Louvre, and its café culture. It's been the capital since the late 10th century."))
+        .padding()
+}
+
 struct MessageBubble: View {
     let message: Message
 
