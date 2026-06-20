@@ -175,6 +175,11 @@ enum CommutePlanner {
     /// query runs off the main actor and its access callback never inherits MainActor
     /// isolation (the Swift 6 `dispatch_assert_queue` trap).
     nonisolated private static func meCardAddress(label: String) async -> String? {
+        // iOS has no "Me card" API (`unifiedMeContactWithKeys` is macOS-only), so
+        // there's nothing to read here — callers fall back to the settings address.
+        #if os(iOS)
+        return nil
+        #else
         guard await contactsAccess() else { return nil }
         let store = CNContactStore()
         let keys: [any CNKeyDescriptor] = [CNContactPostalAddressesKey as CNKeyDescriptor]
@@ -184,6 +189,7 @@ enum CommutePlanner {
         guard let value = match?.value else { return nil }
         let formatted = CNPostalAddressFormatter.string(from: value, style: .mailingAddress)
         return nonEmpty(formatted)
+        #endif
     }
 
     /// Geocode an address or place name to a map item, biased to the current area.
