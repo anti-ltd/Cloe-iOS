@@ -45,7 +45,7 @@ struct ModelSetupView: View {
             VStack(spacing: 8) {
                 Text("On-Device AI")
                     .font(.title2.bold())
-                Text("Sage runs a language model entirely on your device — no internet needed after the initial download.")
+                Text("Cloe runs a language model entirely on your device — no internet needed after the initial download.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

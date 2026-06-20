@@ -1,8 +1,8 @@
-APP_NAME       := Sage
-SCHEME         := Sage
-BUNDLE_ID      := ltd.anti.sage
+APP_NAME       := Cloe
+SCHEME         := Cloe
+BUNDLE_ID      := ltd.anti.cloe
 
-PROJECT        := Sage.xcodeproj
+PROJECT        := Cloe.xcodeproj
 BUILD_DIR      := build
 DERIVED        := $(BUILD_DIR)/DerivedData
 CONFIG         ?= Debug
@@ -10,8 +10,12 @@ CONFIG         ?= Debug
 SIM_NAME       ?= iPhone 17 Pro
 SIM_DEST       := "platform=iOS Simulator,name=$(SIM_NAME)"
 
+# Device selection. Defaults to the lambda-ios phone (this project's test
+# device); other paired iPhones — e.g. the SW-IOS-US remote unit — would
+# otherwise win the name-less pick just by sorting first. Override with
+# DEVICE=<udid> or DEVICE_NAME="My iPhone" (DEVICE_NAME= to pick any).
 DEVICE         ?=
-DEVICE_NAME    ?=
+DEVICE_NAME    ?= OSV1
 
 # Unsigned-IPA packaging (for a friend to self-sign via Sideloadly/AltStore).
 IPA_CONFIG     ?= Release
@@ -19,7 +23,15 @@ IPA_BUNDLE_ID  ?= $(BUNDLE_ID)
 IPA_NAME       ?= $(APP_NAME)-unsigned.ipa
 IPA_DERIVED    := $(BUILD_DIR)/DerivedData-ipa
 
-.PHONY: all project icon build run sim install clean stop help test \
+# Bake CHANGELOG.md into Sources/Cloe/Changelog.generated.swift so the Settings
+# "What's New" button can render it in-app. The output depends on the source
+# markdown + the generator, so editing either re-bakes on the next build (the
+# build/ipa targets list $(CHANGELOG_OUT) as a prerequisite).
+CHANGELOG_SRC := CHANGELOG.md
+CHANGELOG_GEN := Tools/GenerateChangelog.swift
+CHANGELOG_OUT := Sources/Cloe/Changelog.generated.swift
+
+.PHONY: all project icon changelog build run sim install clean stop help test \
         device device-install device-launch build-device ipa
 
 all: build
@@ -28,6 +40,7 @@ help:
 	@echo "Simulator targets:"
 	@echo "  make project — regenerate $(PROJECT) from project.yml (needs xcodegen)"
 	@echo "  make icon    — render the app icon PNGs into Assets.xcassets"
+	@echo "  make changelog — bake CHANGELOG.md into the app (auto-runs on build)"
 	@echo "  make build   — xcodebuild for the iOS simulator"
 	@echo "  make run     — boot the sim, install, launch"
 	@echo "  make stop    — terminate the running sim instance"
@@ -46,8 +59,8 @@ help:
 	@echo "  SIM_NAME=\"iPhone 16 Pro Max\"  pick a different simulator"
 	@echo "  DEVICE=<udid>              pick a specific iPhone by UDID"
 	@echo "  DEVICE_NAME=\"My iPhone\"     pick a specific iPhone by name"
-	@echo "  IPA_BUNDLE_ID=com.you.sage make ipa   override the bundle id"
-	@echo "  IPA_NAME=Sage.ipa make ipa            override the output filename"
+	@echo "  IPA_BUNDLE_ID=com.you.cloe make ipa   override the bundle id"
+	@echo "  IPA_NAME=Cloe.ipa make ipa            override the output filename"
 
 icon:
 	swift Tools/RenderAppIcon.swift
@@ -59,7 +72,12 @@ project:
 	xcodegen generate
 	@echo "Generated $(PROJECT)"
 
-build: $(PROJECT)
+$(CHANGELOG_OUT): $(CHANGELOG_SRC) $(CHANGELOG_GEN)
+	swift Tools/GenerateChangelog.swift
+
+changelog: $(CHANGELOG_OUT)
+
+build: $(PROJECT) $(CHANGELOG_OUT)
 	@mkdir -p $(BUILD_DIR)
 	xcodebuild \
 		-project $(PROJECT) \
@@ -102,7 +120,7 @@ clean:
 # carries no signature or provisioning profile, so the recipient signs it with
 # their own Apple ID (Sideloadly, AltStore, ESign, …). Requires the Metal
 # toolchain: `xcodebuild -downloadComponent MetalToolchain` (one time).
-ipa: $(PROJECT) icon
+ipa: $(PROJECT) icon $(CHANGELOG_OUT)
 	@mkdir -p $(BUILD_DIR)
 	xcodebuild \
 		-project $(PROJECT) \
@@ -130,6 +148,8 @@ DEVICE_UDID = $(shell \
 		xcrun devicectl list devices 2>/dev/null \
 			| awk -v name="$(DEVICE_NAME)" '\
 				/^----/ {next} \
+				!/physical/ {next} \
+				!/connected| available/ {next} \
 				name != "" && index($$0, name) == 0 {next} \
 				{ \
 					if (match($$0, /[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}/)) { \
@@ -138,7 +158,7 @@ DEVICE_UDID = $(shell \
 				}'; \
 	fi)
 
-build-device: $(PROJECT)
+build-device: $(PROJECT) $(CHANGELOG_OUT)
 	@mkdir -p $(BUILD_DIR)
 	xcodebuild \
 		-project $(PROJECT) \

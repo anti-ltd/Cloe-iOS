@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import Sage
+@testable import Cloe
 
 final class ForgePreviewSnapshot: XCTestCase {
     @MainActor func testForgeRender() {

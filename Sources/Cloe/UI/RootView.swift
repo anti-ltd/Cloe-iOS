@@ -14,6 +14,13 @@ struct RootView: View {
     var body: some View {
         if let mlx = model.mlxBackend, model.needsMLXSetup {
             ModelSetupView(mlx: mlx)
+                // A downloaded model sits idle on launch; load it from disk so we
+                // skip the setup screen instead of making the user tap Download again.
+                .task {
+                    if case .idle = mlx.loadState, mlx.isDownloaded {
+                        await mlx.prepare()
+                    }
+                }
         } else {
             ChatView()
         }

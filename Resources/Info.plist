@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sage</string>
+	<string>Cloe</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,8 +18,35 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>ltd.anti.cloe</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cloe</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Cloe sets countdown timers that ring even when your phone is on silent.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Cloe adds events to your calendar when you ask.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Cloe looks up a contact's number when you ask it to call or text someone, and reads your card's work or home address to work out your commute.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Cloe uses your location to pin where you parked in Cling and to estimate when you need to leave to reach a place on time.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Cloe uses the microphone so you can talk to it instead of typing.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Cloe creates reminders for you when you ask.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Cloe transcribes your speech on-device to turn your voice into messages.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

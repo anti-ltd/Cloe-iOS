@@ -1,8 +1,8 @@
-# XcodeGen manifest. `make project` regenerates Sage.xcodeproj from this.
+# XcodeGen manifest. `make project` regenerates Cloe.xcodeproj from this.
 # Keep the manifest as the source of truth — never edit the generated .xcodeproj
 # by hand or the next `make project` will clobber it.
 
-name: Sage
+name: Cloe
 options:
   bundleIdPrefix: ltd.anti
   deploymentTarget:
@@ -26,16 +26,29 @@ packages:
     from: "2.29.1"
 
 targets:
-  Sage:
+  Cloe:
     type: application
     platform: iOS
     sources:
-      - Sources/Sage
+      - Sources/Cloe
+      - Sources/Shared
       - Resources/Assets.xcassets
     info:
       path: Resources/Info.plist
       properties:
-        CFBundleDisplayName: Sage
+        CFBundleDisplayName: Cloe
+        NSMicrophoneUsageDescription: "Cloe uses the microphone so you can talk to it instead of typing."
+        NSSpeechRecognitionUsageDescription: "Cloe transcribes your speech on-device to turn your voice into messages."
+        NSContactsUsageDescription: "Cloe looks up a contact's number when you ask it to call or text someone, and reads your card's work or home address to work out your commute."
+        NSCalendarsWriteOnlyAccessUsageDescription: "Cloe adds events to your calendar when you ask."
+        NSRemindersFullAccessUsageDescription: "Cloe creates reminders for you when you ask."
+        NSAlarmKitUsageDescription: "Cloe sets countdown timers that ring even when your phone is on silent."
+        NSLocationWhenInUseUsageDescription: "Cloe uses your location to pin where you parked in Cling and to estimate when you need to leave to reach a place on time."
+        NSSupportsLiveActivities: true
+        CFBundleURLTypes:
+          - CFBundleURLName: ltd.anti.cloe
+            CFBundleURLSchemes:
+              - cloe
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
@@ -50,6 +63,13 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+    entitlements:
+      path: Resources/Cloe.entitlements
+      properties:
+        # Shared with the Clink keyboard so Cloe can read/write its clipboard +
+        # scratchpad files in the App Group container.
+        com.apple.security.application-groups:
+          - group.ltd.anti.clink
     dependencies:
       - package: iUX-ios
         product: iUXiOS
@@ -58,8 +78,27 @@ targets:
         product: MLXLLM
       - package: mlx-swift-examples
         product: MLXLMCommon
+      - target: CloeWidgets
+        embed: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ltd.anti.sage
+        PRODUCT_BUNDLE_IDENTIFIER: ltd.anti.cloe
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  CloeWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - CloeWidgets
+      - Sources/Shared
+    info:
+      path: CloeWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Cloe
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ltd.anti.cloe.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"

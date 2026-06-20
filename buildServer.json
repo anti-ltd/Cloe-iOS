@@ -12,8 +12,8 @@
 	"argv": [
 		"/opt/homebrew/bin/xcode-build-server"
 	],
-	"workspace": "/Users/osv/Projects/anti-ltd/Sage-iOS/Sage.xcodeproj/project.xcworkspace",
-	"build_root": "/Users/osv/Library/Developer/Xcode/DerivedData/Sage-autxclcmehyguycqdkdmisiqgeyf",
-	"scheme": "Sage",
+	"workspace": "/Users/osv/Projects/anti-ltd/Cloe-iOS/Cloe.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/osv/Library/Developer/Xcode/DerivedData/Cloe-denqxbiokdvgabbbqatpmsrzajpa",
+	"scheme": "Cloe",
 	"kind": "xcode"
 }
