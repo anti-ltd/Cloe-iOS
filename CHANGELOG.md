@@ -6,7 +6,42 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [1.0.0] - Unreleased
 
+### Changed
+- **A whole new look — Presence.** Cloe now opens onto pure black with one living
+  **liquid orb** floating at its centre — molten prism colour under glass that
+  drifts, pulses, churns and breathes. There is no greeting, no menu, no buttons:
+  everything on screen is either the orb or light it casts. A single breathing word
+  names her — *cloe* — and after a moment three motes of her own light drift into
+  orbit (*write · wonder · plan*); touch one and it's drawn into the orb to begin.
+  Type and the input is light on the void rather than a box; ask and her reply flows
+  down as plain luminous text — hers in white, yours in her colour, no bubbles. When
+  she speaks, the whole stage glows from wherever she's risen to. The gear and
+  history controls are now faint marks of light in the corners.
+- **Hold the orb to talk.** The microphone button is gone — press and hold the orb
+  to speak to Cloe, release to send (a pause while holding sends too). While you
+  hold, the text field becomes a **live waveform that reacts to your voice**, and
+  the orb pulses along.
+- **Cloe sounds human now.** Spoken replies no longer default to the flat, robotic
+  system voice — Cloe automatically picks the highest-quality voice you have
+  installed (Premium → Enhanced → Compact). Pick a specific one under
+  **Settings → Voice**, or download richer voices in iOS Settings → Accessibility →
+  Spoken Content.
+
 ### Added
+- **Natural Voice (Beta) — a real neural voice, fully on-device.** Turn it on in
+  **Settings → Voice** and Cloe speaks with Kokoro, a small neural text-to-speech
+  model that runs entirely on your iPhone — far warmer and more human than the system
+  voice, and still 100% offline (a one-time ~90 MB download, no account, nothing sent
+  off the device). Pick from a range of American and British voices. Falls back to the
+  system voice while it downloads.
+- **Voice picker.** Choose exactly which voice Cloe speaks with in **Settings →
+  Voice**, listed with language and quality tier, or leave it on Automatic.
+- **Natural-voice nudge.** If only the basic system voice is installed, Settings →
+  Voice now shows a one-tap shortcut to download a Premium (Siri-quality) voice,
+  with the exact path spelled out.
+- **No more spoken emoji.** Cloe now skips emoji when reading replies aloud instead
+  of announcing "grinning face", "thumbs up" and so on. Punctuation, numbers and
+  symbols like `#`, `*` and `%` are kept.
 - **"What time do I need to leave?"** Ask Cloe when to set off and it works out a
   real answer from live traffic — *"I need to be at work for 8am, what time do I
   need to leave?"* It checks the drive (or walk/transit if you say so) to your

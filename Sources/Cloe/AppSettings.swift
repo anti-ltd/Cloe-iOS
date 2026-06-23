@@ -46,6 +46,11 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(dictationSilence, forKey: "dictationSilence") }
     }
 
+    /// Orb / stage colour theme — tints the liquid, blooms, waveforms, and accents.
+    var visualTheme: CloeTheme {
+        didSet { UserDefaults.standard.set(visualTheme.rawValue, forKey: "visualTheme") }
+    }
+
     /// Resolved model option from the catalog, falling back to the default if the saved ID is stale.
     var selectedMLXModel: MLXModelOption {
         MLXModelCatalog.all.first { $0.id == selectedMLXModelID } ?? MLXModelCatalog.defaultModel
@@ -71,5 +76,11 @@ final class AppSettings {
         homeAddress = UserDefaults.standard.string(forKey: "homeAddress") ?? ""
         workAddress = UserDefaults.standard.string(forKey: "workAddress") ?? ""
         dictationSilence = UserDefaults.standard.object(forKey: "dictationSilence") as? Double ?? 0.8
+        if let raw = UserDefaults.standard.string(forKey: "visualTheme"),
+           let theme = CloeTheme(rawValue: raw) {
+            visualTheme = theme
+        } else {
+            visualTheme = .original
+        }
     }
 }

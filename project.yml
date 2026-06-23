@@ -24,6 +24,9 @@ packages:
   mlx-swift-examples:
     url: https://github.com/ml-explore/mlx-swift-examples
     from: "2.29.1"
+  onnxruntime:
+    url: https://github.com/microsoft/onnxruntime-swift-package-manager
+    from: "1.20.0"
 
 targets:
   Cloe:
@@ -33,6 +36,12 @@ targets:
       - Sources/Cloe
       - Sources/Shared
       - Resources/Assets.xcassets
+      # Folder reference (not a group) so the misaki dictionaries stay under a
+      # "TTS/" subdirectory in the bundle, matching EnglishG2P's lookup.
+      # Populate with `make fetch-tts-assets`.
+      - path: Resources/TTS
+        type: folder
+        optional: true
     info:
       path: Resources/Info.plist
       properties:
@@ -78,6 +87,8 @@ targets:
         product: MLXLLM
       - package: mlx-swift-examples
         product: MLXLMCommon
+      - package: onnxruntime
+        product: onnxruntime
       - target: CloeWidgets
         embed: true
     settings:

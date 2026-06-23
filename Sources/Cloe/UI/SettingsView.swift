@@ -1,4 +1,6 @@
 import SwiftUI
+import AVFoundation
+import UIKit
 
 #Preview {
     let model = AppModel()
@@ -11,11 +13,14 @@ struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var showChangelog = false
 
     var body: some View {
         NavigationStack {
             List {
+                appearanceSection
+
                 if settings.canChooseMLX {
                     backendSection
                 }
@@ -43,6 +48,33 @@ struct SettingsView: View {
     }
 
     // MARK: - Sections
+
+    private var appearanceSection: some View {
+        Section {
+            ForEach(CloeTheme.allCases) { theme in
+                Button {
+                    settings.visualTheme = theme
+                } label: {
+                    HStack(spacing: 14) {
+                        CloeOrb(theme: theme, state: .idle, size: 36, halo: false)
+                        Text(theme.label)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if settings.visualTheme == theme {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(theme.primary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("Appearance")
+        } footer: {
+            Text("Tints the orb, stage glow, waveforms, and accents across the app.")
+        }
+    }
 
     private var backendSection: some View {
         Section {
@@ -128,6 +160,33 @@ struct SettingsView: View {
                 Label("Speak Replies Aloud", systemImage: "speaker.wave.2.fill")
             }
 
+            Toggle(isOn: Binding(
+                get: { model.speech.useNeuralVoice },
+                set: { model.speech.useNeuralVoice = $0 }
+            )) {
+                Label("Natural Voice (Beta)", systemImage: "sparkles")
+            }
+
+            if model.speech.useNeuralVoice {
+                neuralVoiceControls
+            } else {
+                Picker(selection: Binding(
+                    get: { model.speech.voiceIdentifier },
+                    set: { model.speech.voiceIdentifier = $0 }
+                )) {
+                    Text("Automatic (Best)").tag("")
+                    ForEach(installedVoices, id: \.identifier) { voice in
+                        Text(voiceLabel(voice)).tag(voice.identifier)
+                    }
+                } label: {
+                    Label("Voice", systemImage: "waveform")
+                }
+
+                if model.speech.needsBetterVoice {
+                    naturalVoiceNudge
+                }
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: "tortoise.fill").foregroundStyle(.secondary)
@@ -163,8 +222,90 @@ struct SettingsView: View {
         } header: {
             Text("Voice")
         } footer: {
-            Text("Tap the speaker on any reply to hear it. Enable auto-speak to read every reply. Dictation pause sets how long to wait after you stop talking before sending.")
+            Text("Tap the speaker on any reply to hear it. Automatic picks the highest-quality voice installed. For richer voices, download Premium or Enhanced ones in Settings → Accessibility → Spoken Content → Voices. Dictation pause sets how long to wait after you stop talking before sending.")
         }
+    }
+
+    /// Kokoro neural-voice picker + download/load status.
+    @ViewBuilder
+    private var neuralVoiceControls: some View {
+        Picker(selection: Binding(
+            get: { model.speech.neuralVoiceID },
+            set: { model.speech.neuralVoiceID = $0 }
+        )) {
+            ForEach(KokoroVoiceCatalog.all) { voice in
+                Text(voice.displayLabel).tag(voice.id)
+            }
+        } label: {
+            Label("Neural Voice", systemImage: "waveform.badge.magnifyingglass")
+        }
+
+        if let status = neuralStatus {
+            HStack(spacing: 8) {
+                if case .downloading = model.speech.kokoro.state {
+                    ProgressView()
+                } else if case .preparing = model.speech.kokoro.state {
+                    ProgressView()
+                }
+                Text(status)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Human-readable Kokoro state, or nil when ready (no need to clutter).
+    private var neuralStatus: String? {
+        switch model.speech.kokoro.state {
+        case .ready:               return nil
+        case .idle:                return "Downloads on first use (~90 MB, one time)."
+        case .downloading(let p):  return "Downloading voice… \(Int(p * 100))%"
+        case .preparing:           return "Preparing voice…"
+        case .failed(let msg):     return "Couldn't load: \(msg)"
+        case .unavailable:         return "Voice data missing — run “make fetch-tts-assets”."
+        }
+    }
+
+    /// Shown when only a compact (robotic) voice is installed — points the user at the
+    /// iOS voice download. iOS has no public deep-link to the Spoken Content pane, so we
+    /// open Settings and spell out the path.
+    private var naturalVoiceNudge: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Cloe is using a basic voice", systemImage: "exclamationmark.bubble")
+                .font(.subheadline.weight(.semibold))
+            Text("For a natural voice, download a named Premium or Enhanced voice — like Serena, Kate or Oliver — under iOS Settings → Accessibility → Spoken Content → Voices. Don't pick the “Siri” voices: iOS reserves those and apps can't use them. Cloe picks up any other downloaded voice automatically.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    openURL(url)
+                }
+            } label: {
+                Label("Get a Natural Voice", systemImage: "arrow.down.circle.fill")
+                    .font(.subheadline.weight(.medium))
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .padding(.top, 2)
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// Installed voices, best-first, for the picker.
+    private var installedVoices: [AVSpeechSynthesisVoice] {
+        SpeechService.installedVoices()
+    }
+
+    /// "Zoe · en-US · Premium" — name, locale, and quality tier.
+    private func voiceLabel(_ voice: AVSpeechSynthesisVoice) -> String {
+        let quality: String
+        switch voice.quality {
+        case .premium: quality = "Premium"
+        case .enhanced: quality = "Enhanced"
+        case .default: quality = "Compact"
+        @unknown default: quality = ""
+        }
+        return "\(voice.name) · \(voice.language) · \(quality)"
     }
 
     private var actionsSection: some View {

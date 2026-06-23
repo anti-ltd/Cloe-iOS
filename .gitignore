@@ -1,3 +1,6 @@
 build/
 *.xcodeproj/
 .DS_Store
+
+# Kokoro neural-voice dictionaries — fetched via `make fetch-tts-assets`, not vendored.
+Resources/TTS/

@@ -12,6 +12,13 @@ struct RootView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        content
+            .preferredColorScheme(.dark)
+            .tint(model.settings.visualTheme.primary)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if let mlx = model.mlxBackend, model.needsMLXSetup {
             ModelSetupView(mlx: mlx)
                 // A downloaded model sits idle on launch; load it from disk so we

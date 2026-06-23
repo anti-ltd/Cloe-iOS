@@ -31,8 +31,15 @@ CHANGELOG_SRC := CHANGELOG.md
 CHANGELOG_GEN := Tools/GenerateChangelog.swift
 CHANGELOG_OUT := Sources/Cloe/Changelog.generated.swift
 
+# Kokoro neural-TTS phoneme dictionaries (misaki, Apache-2.0). Bundled under a
+# "TTS/" folder reference so EnglishG2P can load them offline. Not committed —
+# run `make fetch-tts-assets` once before building with the neural voice.
+TTS_DIR        := Resources/TTS
+TTS_DICTS      := us_gold gb_gold
+MISAKI_BASE    := https://raw.githubusercontent.com/hexgrad/misaki/main/misaki/data
+
 .PHONY: all project icon changelog build run sim install clean stop help test \
-        device device-install device-launch build-device ipa
+        device device-install device-launch build-device ipa fetch-tts-assets
 
 all: build
 
@@ -41,6 +48,7 @@ help:
 	@echo "  make project — regenerate $(PROJECT) from project.yml (needs xcodegen)"
 	@echo "  make icon    — render the app icon PNGs into Assets.xcassets"
 	@echo "  make changelog — bake CHANGELOG.md into the app (auto-runs on build)"
+	@echo "  make fetch-tts-assets — download Kokoro neural-voice dictionaries (run once)"
 	@echo "  make build   — xcodebuild for the iOS simulator"
 	@echo "  make run     — boot the sim, install, launch"
 	@echo "  make stop    — terminate the running sim instance"
@@ -76,6 +84,17 @@ $(CHANGELOG_OUT): $(CHANGELOG_SRC) $(CHANGELOG_GEN)
 	swift Tools/GenerateChangelog.swift
 
 changelog: $(CHANGELOG_OUT)
+
+# Download the misaki English pronunciation dictionaries into Resources/TTS so the
+# neural voice can phonemize offline. Apache-2.0 (App Store-clean — no GPL espeak).
+fetch-tts-assets:
+	@mkdir -p $(TTS_DIR)
+	@for f in $(TTS_DICTS); do \
+		echo "Fetching $$f.json…"; \
+		curl -fsSL "$(MISAKI_BASE)/$$f.json" -o "$(TTS_DIR)/$$f.json" || { \
+			echo "Failed to fetch $$f.json" >&2; exit 1; }; \
+	done
+	@echo "Kokoro G2P dictionaries ready in $(TTS_DIR)/ — re-run 'make project' to bundle them."
 
 build: $(PROJECT) $(CHANGELOG_OUT)
 	@mkdir -p $(BUILD_DIR)

@@ -76,6 +76,9 @@ final class AppModel {
         // Spin the model up now so the first message doesn't pay cold-start latency.
         backend?.prewarm()
 
+        // If the neural voice is enabled and already downloaded, warm it too.
+        speech.prewarmNeuralIfEnabled()
+
         // Pin (or refresh, if one survived a relaunch) the Lock Screen activity when
         // the user has quick access enabled. The controller is stateless — it queries
         // the live activities itself.
@@ -279,17 +282,24 @@ final class AppModel {
             return
         }
 
+        // Speak as the reply generates (neural voice only) instead of waiting for the
+        // whole answer. Falls back to a one-shot speak at the end otherwise.
+        let streamSpeak = settings.autoSpeak && speech.canStreamSpeak
+        if streamSpeak { speech.beginStreaming() }
+
         do {
             let stream = backend.streamResponse(prompt: text, history: messages)
             for try await chunk in stream {
                 // Strip thinking + tags live so the user never sees `<think>` or raw `{{…}}`.
                 let (clean, actions) = ActionRouter.extract(from: chunk)
                 messages[idx].content = clean
+                if streamSpeak { speech.streamAppend(clean) }
                 // 2. Live path: fire a model tag the moment it finishes streaming. With
                 //    tag-first prompting that's in the first tokens, not after the reply.
                 await fire(actions)
             }
         } catch {
+            if streamSpeak { speech.stop() }
             messages[idx].content = error.localizedDescription
             backend.resetContext()
             isGenerating = false
@@ -309,8 +319,12 @@ final class AppModel {
         await runDeferred(deferred, userText: text, idx: idx, fired: &fired)
 
         persist()
-        if settings.autoSpeak, messages.indices.contains(idx) {
-            speech.speak(messages[idx].content)
+        if messages.indices.contains(idx) {
+            if streamSpeak {
+                speech.endStreaming(messages[idx].content)
+            } else if settings.autoSpeak {
+                speech.speak(messages[idx].content)
+            }
         }
     }
 
