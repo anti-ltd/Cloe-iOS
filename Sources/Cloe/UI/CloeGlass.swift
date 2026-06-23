@@ -93,3 +93,13 @@ extension View {
         modifier(CloeGlassSurface(cornerRadius: 999, tint: tint, shadow: false))
     }
 }
+
+/// Spring press for glass controls — shared across chat toolbar and glass rows.
+struct CloeGlassPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .animation(CloeMotion.glassPress, value: configuration.isPressed)
+    }
+}

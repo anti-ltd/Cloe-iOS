@@ -2,21 +2,22 @@ import SwiftUI
 
 #Preview {
     let model = AppModel()
-    return HistoryView().environment(model)
+    return HistoryView()
+        .environment(model)
+        .environment(model.settings)
 }
 
-/// Past-conversation list. Tap to open, swipe to delete, "+" to start fresh.
 struct HistoryView: View {
     @Environment(AppModel.self) private var model
+    @Environment(AppSettings.self) private var settings
     @Environment(\.dismiss) private var dismiss
 
     private var saved: [Conversation] {
-        // Hide the empty just-started thread from the list.
         model.conversations.filter { !$0.messages.isEmpty }
     }
 
     var body: some View {
-        NavigationStack {
+        CloeSheetChrome(title: "History", dismiss: { dismiss() }) {
             Group {
                 if saved.isEmpty {
                     ContentUnavailableView(
@@ -39,14 +40,10 @@ struct HistoryView: View {
                             offsets.map { saved[$0].id }.forEach(model.deleteConversation)
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             }
-            .navigationTitle("History")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") { dismiss() }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         model.newConversation()
@@ -58,6 +55,7 @@ struct HistoryView: View {
                 }
             }
         }
+        .tint(settings.visualTheme.primary)
     }
 
     private func row(_ convo: Conversation) -> some View {

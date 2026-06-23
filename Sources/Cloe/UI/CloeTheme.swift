@@ -16,6 +16,11 @@ enum CloePalette {
     static let ink      = Color(red: 0.957, green: 0.949, blue: 0.984) // #F4F2FB
     static let inkMuted = Color.white.opacity(0.55)
     static let hairline = Color.white.opacity(0.12)
+
+    /// App canvas — warm charcoal, not pure black.
+    static let canvas   = Color(red: 0.07, green: 0.07, blue: 0.08)
+    static let surface  = Color(red: 0.11, green: 0.11, blue: 0.12)
+    static let separator = Color.white.opacity(0.08)
 }
 
 /// Orb colour themes — each is a distinct liquid palette that tints the orb,
@@ -71,9 +76,9 @@ enum CloeTheme: String, CaseIterable, Identifiable, Codable {
     /// The breathing presence word + orbiting intentions — orb light, never solid.
     var presence: Color { primary.opacity(0.35) }
     /// Cloe's dialogue: ink lit from the same source as the orb.
-    var dialogueCloe: Color { CloePalette.ink.opacity(0.92) }
-    /// The user's dialogue: the theme's own light, so turns read by colour not bubbles.
-    var dialogueUser: Color { primary.opacity(0.88) }
+    var dialogueCloe: Color { CloePalette.ink.opacity(0.88) }
+    /// The user's dialogue — slightly muted, distinguished by alignment not neon colour.
+    var dialogueUser: Color { CloePalette.ink.opacity(0.72) }
 
     /// Full-perimeter spectrum for the Alive edge glow — warm yellow through cool
     /// blue, each theme keeping its own accent family.

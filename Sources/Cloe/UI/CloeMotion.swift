@@ -40,4 +40,13 @@ enum CloeMotion {
 
     /// Hold-to-speak discoverability pulse.
     static let holdHint = Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true)
+
+    /// Aether ripple when a new message lands.
+    static let messageRipple = Animation.spring(response: 0.68, dampingFraction: 0.72)
+
+    /// Glass sheet section stagger.
+    static func sectionStagger(index: Int) -> Animation {
+        .spring(response: 0.55, dampingFraction: 0.82)
+            .delay(0.06 + Double(index) * 0.08)
+    }
 }

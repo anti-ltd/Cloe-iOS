@@ -87,8 +87,11 @@ struct CloeOrb: View {
     /// Live mic / output level 0…1 — pumps glow, bloom and sparkle when speaking.
     var level: () -> CGFloat = { 0 }
 
+    /// Hero orb runs the full canvas; compact uses a static gradient (no GPU churn).
+    private var live: Bool { size >= 100 }
+
     /// Below this the fancy surface detail is skipped (tiny settings swatch).
-    private var rich: Bool { size >= 52 }
+    private var rich: Bool { size >= 52 && live }
 
     private struct Blob {
         let colorIndex: Int
@@ -130,29 +133,65 @@ struct CloeOrb: View {
     ]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
+        Group {
+            if live {
+                liveOrb
+            } else {
+                compactOrb
+            }
+        }
+        .frame(width: size, height: size)
+        .animation(.smooth(duration: 0.5), value: state)
+        .animation(.smooth(duration: 0.25), value: pressed)
+    }
+
+    /// Static gradient sphere — used in conversation header and small swatches.
+    private var compactOrb: some View {
+        let colors = theme.blobColors
+        return ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            colors[0].opacity(0.95),
+                            colors[1].opacity(0.75),
+                            colors[2].opacity(0.45),
+                        ],
+                        center: UnitPoint(x: 0.38, y: 0.32),
+                        startRadius: 0,
+                        endRadius: size * 0.55
+                    )
+                )
+            Circle()
+                .strokeBorder(.white.opacity(0.14), lineWidth: 0.5)
+            if state != .idle {
+                Circle()
+                    .strokeBorder(theme.primary.opacity(0.55), lineWidth: 1.5)
+                    .padding(2)
+            }
+        }
+    }
+
+    private var liveOrb: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             let now = timeline.date.timeIntervalSinceReferenceDate
             let lvl = clampedLevel()
             let t = now * state.speed * (pressed ? 1.18 : 1)
-            let breath = 1 + CGFloat(sin(now * 1.35)) * state.breath + CGFloat(lvl) * 0.09
+            let breath = 1 + CGFloat(sin(now * 1.35)) * state.breath + CGFloat(lvl) * 0.06
 
             ZStack {
                 if halo { outerBloom(now: now, lvl: lvl) }
                 liquid(t: t, lvl: lvl)
-                    .saturation(1.28)
+                    .saturation(1.12)
                     .scaleEffect(breath)
                     .mask(edgeMask)
-                    .hueRotation(.degrees(sin(now * 0.45) * 5))
                 if rich {
                     surface(now: now, t: t, lvl: lvl)
                         .scaleEffect(breath)
                 }
             }
-            .frame(width: size, height: size)
             .compositingGroup()
         }
-        .animation(.smooth(duration: 0.5), value: state)
-        .animation(.smooth(duration: 0.25), value: pressed)
     }
 
     private func clampedLevel() -> CGFloat {
@@ -537,229 +576,43 @@ struct VoiceWave: View {
     }
 }
 
-// MARK: - The stage backdrop
+// MARK: - Intentions
 
-/// A pure-black field with slow, breathing ambient blooms that follow the orb's
-/// mood and theme. The motion is gentle — glass surfaces above stay cheap.
-struct CloeStage: View {
-    var theme: CloeTheme = .original
-    var orbState: CloeOrbState = .idle
-    /// Where the orb actually sits on screen — the primary bloom emanates from
-    /// here so colour genuinely radiates from her, wherever she's risen to.
-    var orbCenter: UnitPoint = UnitPoint(x: 0.5, y: 0.40)
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            let now = timeline.date.timeIntervalSinceReferenceDate
-            let breathe = 0.85 + 0.15 * sin(now * 0.55)
-            // Real TTS exposes no amplitude, so the "room brightens on her phrases"
-            // rides a synthetic envelope gated on the speaking state — never mic level.
-            let speak = orbState == .speaking
-                ? 0.80 + 0.30 * (0.5 + 0.5 * sin(now * 5.2)) * (0.6 + 0.4 * sin(now * 1.7))
-                : 1.0
-            let intensity = orbState.glow * breathe * speak
-            let blooms = theme.stageBlooms
-            let colors = theme.blobColors
-
-            ZStack {
-                Color.black
-
-                // Slow-drifting mesh — the screenshot's edge glows, alive not static.
-                MeshGradient(
-                    width: 3, height: 3,
-                    points: meshPoints(now: now, orbCenter: orbCenter),
-                    colors: [
-                        blooms.top.opacity(intensity * 0.14),
-                        blooms.trailing.opacity(intensity * 0.10),
-                        blooms.leading.opacity(intensity * 0.08),
-                        colors[1].opacity(intensity * 0.06),
-                        .clear,
-                        colors[3].opacity(intensity * 0.05),
-                        blooms.leading.opacity(intensity * 0.07),
-                        colors[2].opacity(intensity * 0.05),
-                        blooms.trailing.opacity(intensity * 0.09),
-                    ]
-                )
-                .blur(radius: 48)
-
-                ambientBlob(color: blooms.top, center: orbCenter,
-                            radius: 480, drift: now * 0.08, intensity: intensity * 0.18)
-                ambientBlob(color: blooms.trailing, center: UnitPoint(x: 0.92, y: 0.08),
-                            radius: 360, drift: now * 0.06 + 1.2, intensity: intensity * 0.11)
-                ambientBlob(color: blooms.leading, center: UnitPoint(x: 0.06, y: 0.72),
-                            radius: 400, drift: now * 0.05 + 2.4, intensity: intensity * 0.09)
-
-                RadialGradient(
-                    colors: [.clear, .black.opacity(0.50)],
-                    center: orbCenter, startRadius: 120, endRadius: 520
-                )
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-        }
-    }
-
-    /// Nine control points drift on independent Lissajous paths — colour pools slowly.
-    private func meshPoints(now: Double, orbCenter: UnitPoint) -> [SIMD2<Float>] {
-        let cx = Float(orbCenter.x)
-        let cy = Float(orbCenter.y)
-        let d = Float(now)
-        return [
-            SIMD2(0.02 + sin(d * 0.07) * 0.03, 0.04 + cos(d * 0.05) * 0.02),
-            SIMD2(0.50 + sin(d * 0.04) * 0.04, 0.02 + cos(d * 0.06) * 0.03),
-            SIMD2(0.98 + sin(d * 0.06 + 1) * 0.02, 0.06 + cos(d * 0.04) * 0.02),
-            SIMD2(0.04 + sin(d * 0.05 + 2) * 0.03, cy + sin(d * 0.03) * 0.04),
-            SIMD2(cx + sin(d * 0.03) * 0.05, cy + cos(d * 0.035) * 0.04),
-            SIMD2(0.96 + sin(d * 0.05 + 3) * 0.02, 0.50 + cos(d * 0.04) * 0.03),
-            SIMD2(0.06 + sin(d * 0.04 + 1.5) * 0.03, 0.94 + cos(d * 0.05) * 0.02),
-            SIMD2(0.48 + sin(d * 0.035 + 2.5) * 0.04, 0.96 + cos(d * 0.03) * 0.02),
-            SIMD2(0.98 + sin(d * 0.06 + 4) * 0.02, 0.92 + cos(d * 0.045) * 0.02),
-        ]
-    }
-
-    private func ambientBlob(color: Color, center: UnitPoint, radius: CGFloat,
-                             drift: Double, intensity: Double) -> some View {
-        RadialGradient(
-            colors: [color.opacity(intensity), color.opacity(intensity * 0.35), .clear],
-            center: UnitPoint(
-                x: center.x + cos(drift) * 0.04,
-                y: center.y + sin(drift * 0.85) * 0.03
-            ),
-            startRadius: 0, endRadius: radius
-        )
-    }
-}
-
-// MARK: - Orbiting intentions
-
-/// A single suggested intention: the word seeds the conversation when its mote is tapped.
+/// A single suggested intention: the word seeds the conversation when tapped.
 struct OrbitIntention: Identifiable {
     let id = UUID()
     let word: String
     let prompt: String
 }
 
-/// Suggestions as motes of the orb's own light — fixed on a deliberate orbit so
-/// the layout reads intentional, not random drift. Each mote is a soft prism
-/// glow with one lowercase word beneath.
-struct OrbitingIntentions: View {
+/// Horizontal suggestion strip — no orbit animation, no particle motes.
+struct IntentionStrip: View {
     var theme: CloeTheme
     var items: [OrbitIntention]
-    var radius: CGFloat = 150
     var visible: Bool = true
     var onTap: (OrbitIntention) -> Void
 
-    /// Clock positions: write at 12, plan at 8, wonder at 4 — matches the hero layout.
-    private func angle(for index: Int, word: String) -> Double {
-        switch word {
-        case "write":  return -.pi / 2
-        case "plan":   return 5 * .pi / 6
-        case "wonder": return .pi / 6
-        default:
-            let start = -Double.pi * 0.55
-            let span = Double.pi * 1.35
-            return start + span * Double(index) / Double(max(items.count - 1, 1))
-        }
-    }
-
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            let sway = sin(t * 0.12) * 4
-            ZStack {
-                // Faint orbit trace — sells the geometry without a hard ring.
-                Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                theme.primary.opacity(visible ? 0.08 : 0),
-                                theme.secondary.opacity(visible ? 0.04 : 0),
-                                theme.tertiary.opacity(visible ? 0.06 : 0),
-                                theme.primary.opacity(visible ? 0.08 : 0),
-                            ],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.5
-                    )
-                    .frame(width: radius * 2, height: radius * 2 * 0.78)
-                    .blur(radius: 0.5)
-                    .opacity(visible ? 1 : 0)
-                    .animation(CloeMotion.intentionReveal, value: visible)
-
-                ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
-                    let ang = angle(for: i, word: item.word)
-                    let drift = sin(t * 0.6 + Double(i) * 1.4) * 3
-                    let twinkle = 0.65 + 0.35 * (0.5 + 0.5 * sin(t * 1.1 + Double(i) * 2.1))
-                    let x = CGFloat(cos(ang + sway * .pi / 180)) * radius
-                        + CGFloat(drift * cos(ang + .pi / 2))
-                    let y = CGFloat(sin(ang + sway * .pi / 180)) * radius * 0.78
-                        + CGFloat(drift * sin(ang + .pi / 2))
-                    intention(item, twinkle: twinkle, index: i)
-                        .offset(x: x, y: y)
-                        .scaleEffect((visible ? 0.88 : 0.4) + 0.12 * twinkle)
-                        .opacity(visible ? 1 : 0)
-                        .animation(CloeMotion.intentionStagger(index: i), value: visible)
+        HStack(spacing: 10) {
+            ForEach(items) { item in
+                Button { onTap(item) } label: {
+                    Text(item.word)
+                        .font(CloeTypography.captionMedium)
+                        .foregroundStyle(CloePalette.ink.opacity(0.72))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(CloePalette.surface)
+                        .clipShape(Capsule())
+                        .overlay {
+                            Capsule().strokeBorder(CloePalette.separator, lineWidth: 0.5)
+                        }
                 }
+                .buttonStyle(.plain)
             }
-            .frame(width: radius * 2 + 100, height: radius * 2 + 100)
         }
-    }
-
-    private func intention(_ item: OrbitIntention, twinkle: Double, index: Int) -> some View {
-        let colors = theme.blobColors
-        let tint = colors[index % colors.count]
-        return Button { onTap(item) } label: {
-            VStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [
-                                    tint.opacity(0.62 * twinkle),
-                                    tint.opacity(0.22 * twinkle),
-                                    .clear,
-                                ],
-                                center: .center, startRadius: 0, endRadius: 16
-                            )
-                        )
-                        .frame(width: 32, height: 32)
-                        .blur(radius: 2)
-                    Circle()
-                        .fill(.white.opacity(0.88 + 0.12 * twinkle))
-                        .frame(width: 5.5, height: 5.5)
-                        .shadow(color: tint.opacity(0.95), radius: 10)
-                        .shadow(color: .white.opacity(0.55), radius: 4)
-                }
-                Text(item.word)
-                    .font(.system(size: 15, weight: .light, design: .rounded))
-                    .tracking(2.6)
-                    .textCase(.lowercase)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0.92),
-                                tint.opacity(0.78 + 0.18 * twinkle),
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .shadow(color: tint.opacity(0.65), radius: 12)
-            }
-            .frame(width: 84, height: 62)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(IntentionMoteStyle())
-    }
-}
-
-// MARK: - Intention press
-
-private struct IntentionMoteStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 1.14 : 1)
-            .brightness(configuration.isPressed ? 0.12 : 0)
-            .animation(CloeMotion.intentionPress, value: configuration.isPressed)
+        .opacity(visible ? 1 : 0)
+        .offset(y: visible ? 0 : 8)
+        .animation(CloeMotion.intentionReveal, value: visible)
     }
 }
 
@@ -767,7 +620,7 @@ private struct IntentionMoteStyle: ButtonStyle {
 
 #Preview("Hero") {
     ZStack {
-        CloeStage(theme: .original, orbState: .thinking)
+        CloeStage(theme: .original)
         VStack(spacing: 24) {
             CloeOrb(theme: .original, state: .thinking, size: 220)
             VoiceWave(theme: .original, active: true)
